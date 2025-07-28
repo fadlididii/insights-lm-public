@@ -34,6 +34,11 @@ export default {
 		},
 		extend: {
 			colors: {
+				// Add Telkomsel brand colors
+				'telkomsel': {
+					'red': '#E60012',
+					'dark-red': '#CC0010',
+				},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
