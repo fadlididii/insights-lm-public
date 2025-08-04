@@ -11,6 +11,7 @@ import MarkdownRenderer from '@/components/chat/MarkdownRenderer';
 import SaveToNoteButton from './SaveToNoteButton';
 import AddSourcesDialog from './AddSourcesDialog';
 import { Citation } from '@/types/message';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ChatAreaProps {
   hasSource: boolean;
@@ -37,6 +38,9 @@ const ChatArea = ({
   const [showAiLoading, setShowAiLoading] = useState(false);
   const [clickedQuestions, setClickedQuestions] = useState<Set<string>>(new Set());
   const [showAddSourcesDialog, setShowAddSourcesDialog] = useState(false);
+  
+  // Add this line to destructure isAdmin from useAuth
+  const { isAdmin } = useAuth();
   
   const isGenerating = notebook?.generation_status === 'generating';
   
@@ -282,17 +286,30 @@ const ChatArea = ({
             <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center bg-gray-100">
               <Upload className="h-8 w-8 text-slate-600" />
             </div>
-            <h2 className="text-xl font-medium text-gray-900 mb-4">Add a source to get started</h2>
-            <Button onClick={() => setShowAddSourcesDialog(true)}>
-              <Upload className="h-4 w-4 mr-2" />
-              Upload a source
-            </Button>
+            <h2 className="text-xl font-medium text-gray-900 mb-4">
+              {isAdmin ? "Add a source to get started" : "Contact admin to add sources"}
+            </h2>
+            {isAdmin ? (
+              <Button onClick={() => setShowAddSourcesDialog(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Upload a source
+              </Button>
+            ) : (
+              <Button disabled>
+                <Upload className="h-4 w-4 mr-2" />
+                Upload a source (Admin Only)
+              </Button>
+            )}
           </div>
 
           {/* Bottom Input */}
           <div className="w-full max-w-2xl">
             <div className="flex space-x-4">
-              <Input placeholder="Upload a source to get started" disabled className="flex-1" />
+              <Input 
+                placeholder={isAdmin ? "Upload a source to get started" : "Contact admin to add sources"} 
+                disabled 
+                className="flex-1" 
+              />
               <div className="flex items-center text-sm text-gray-500">
                 0 sources
               </div>

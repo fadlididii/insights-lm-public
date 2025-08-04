@@ -12,6 +12,7 @@ import SourceContentViewer from '@/components/chat/SourceContentViewer';
 import { useSources } from '@/hooks/useSources';
 import { useSourceDelete } from '@/hooks/useSourceDelete';
 import { Citation } from '@/types/message';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SourcesSidebarProps {
   hasSource: boolean;
@@ -33,6 +34,8 @@ const SourcesSidebar = ({
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [selectedSource, setSelectedSource] = useState<any>(null);
   const [selectedSourceForViewing, setSelectedSourceForViewing] = useState<any>(null);
+
+  const { isAdmin } = useAuth();
 
   const {
     sources,
@@ -233,10 +236,17 @@ const SourcesSidebar = ({
         </div>
         
         <div className="flex space-x-2">
-          <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowAddSourcesDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add
-          </Button>
+          {isAdmin ? (
+            <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowAddSourcesDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" className="flex-1" disabled>
+              <Plus className="h-4 w-4 mr-2" />
+              Add (Admin Only)
+            </Button>
+          )}
         </div>
       </div>
 

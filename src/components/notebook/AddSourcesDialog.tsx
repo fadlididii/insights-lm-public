@@ -10,6 +10,7 @@ import { useDocumentProcessing } from '@/hooks/useDocumentProcessing';
 import { useNotebookGeneration } from '@/hooks/useNotebookGeneration';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AddSourcesDialogProps {
   open: boolean;
