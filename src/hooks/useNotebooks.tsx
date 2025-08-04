@@ -5,29 +5,28 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const useNotebooks = () => {
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, userProfile, isAuthenticated, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
 
   const {
-    data: notebooks = [],
+    data: notebooks,
     isLoading,
     error,
     isError,
   } = useQuery({
-    queryKey: ['notebooks', user?.id],
+    queryKey: ['notebooks', user?.id, userProfile?.role],
     queryFn: async () => {
       if (!user) {
-        console.log('No user found, returning empty notebooks array');
+        console.log('No user found, returning empty array');
         return [];
       }
+
+      console.log('Fetching notebooks for user:', user.id, 'role:', userProfile?.role);
       
-      console.log('Fetching notebooks for user:', user.id);
-      
-      // First get the notebooks
+      // Get all notebooks (global access)
       const { data: notebooksData, error: notebooksError } = await supabase
         .from('notebooks')
         .select('*')
-        .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
 
       if (notebooksError) {
@@ -35,7 +34,7 @@ export const useNotebooks = () => {
         throw notebooksError;
       }
 
-      // Then get source counts separately for each notebook
+      // Get source counts separately for each notebook
       const notebooksWithCounts = await Promise.all(
         (notebooksData || []).map(async (notebook) => {
           const { count, error: countError } = await supabase
@@ -55,9 +54,8 @@ export const useNotebooks = () => {
       console.log('Fetched notebooks:', notebooksWithCounts?.length || 0);
       return notebooksWithCounts || [];
     },
-    enabled: isAuthenticated && !authLoading,
+    enabled: isAuthenticated && !authLoading && !!userProfile,
     retry: (failureCount, error) => {
-      // Don't retry on auth errors
       if (error?.message?.includes('JWT') || error?.message?.includes('auth')) {
         return false;
       }
@@ -65,11 +63,11 @@ export const useNotebooks = () => {
     },
   });
 
-  // Set up real-time subscription for notebooks updates
+  // Set up real-time subscription for ALL notebooks updates
   useEffect(() => {
     if (!user?.id || !isAuthenticated) return;
 
-    console.log('Setting up real-time subscription for notebooks');
+    console.log('Setting up real-time subscription for all notebooks');
 
     const channel = supabase
       .channel('notebooks-changes')
@@ -79,13 +77,13 @@ export const useNotebooks = () => {
           event: '*',
           schema: 'public',
           table: 'notebooks',
-          filter: `user_id=eq.${user.id}`
+          // Remove user filter to listen to all notebook changes
         },
         (payload) => {
           console.log('Real-time notebook update received:', payload);
           
           // Invalidate and refetch notebooks when any change occurs
-          queryClient.invalidateQueries({ queryKey: ['notebooks', user.id] });
+          queryClient.invalidateQueries({ queryKey: ['notebooks', user.id, userProfile?.role] });
         }
       )
       .subscribe();
@@ -94,24 +92,29 @@ export const useNotebooks = () => {
       console.log('Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [user?.id, isAuthenticated, queryClient]);
+  }, [user?.id, isAuthenticated, queryClient, userProfile?.role]);
 
   const createNotebook = useMutation({
-    mutationFn: async (notebookData: { title: string; description?: string }) => {
+    mutationFn: async (notebookData: { title: string; description?: string; userId?: string }) => {
       console.log('Creating notebook with data:', notebookData);
-      console.log('Current user:', user?.id);
+      console.log('Current user:', user?.id, 'role:', userProfile?.role);
       
       if (!user) {
         console.error('User not authenticated');
         throw new Error('User not authenticated');
       }
 
+      // Admin can create notebooks for other users, regular users create for themselves
+      const targetUserId = (userProfile?.role === 'admin' && notebookData.userId) 
+        ? notebookData.userId 
+        : user.id;
+
       const { data, error } = await supabase
         .from('notebooks')
         .insert({
           title: notebookData.title,
           description: notebookData.description,
-          user_id: user.id,
+          user_id: targetUserId,
           generation_status: 'pending',
         })
         .select()
@@ -127,7 +130,7 @@ export const useNotebooks = () => {
     },
     onSuccess: (data) => {
       console.log('Mutation success, invalidating queries');
-      queryClient.invalidateQueries({ queryKey: ['notebooks', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['notebooks', user?.id, userProfile?.role] });
     },
     onError: (error) => {
       console.error('Mutation error:', error);

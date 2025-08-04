@@ -6,12 +6,17 @@ import { useToast } from '@/hooks/use-toast';
 
 export const useNotebookDelete = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const { toast } = useToast();
 
   const deleteNotebook = useMutation({
     mutationFn: async (notebookId: string) => {
       console.log('Starting notebook deletion process for:', notebookId);
+      
+      // Check if user is admin
+      if (userProfile?.role !== 'admin') {
+        throw new Error('Only administrators can delete notebooks');
+      }
       
       try {
         // First, get the notebook details for better error reporting
@@ -84,7 +89,7 @@ export const useNotebookDelete = () => {
       console.log('Delete mutation success, invalidating queries');
       
       // Invalidate all related queries
-      queryClient.invalidateQueries({ queryKey: ['notebooks', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['notebooks', user?.id, userProfile?.role] });
       queryClient.invalidateQueries({ queryKey: ['sources', notebookId] });
       queryClient.invalidateQueries({ queryKey: ['notebook', notebookId] });
       
@@ -97,6 +102,10 @@ export const useNotebookDelete = () => {
       console.error('Delete mutation error:', error);
       
       let errorMessage = "Failed to delete the notebook. Please try again.";
+      
+      if (error?.message?.includes('Only administrators')) {
+        errorMessage = "You don't have permission to delete notebooks. Only administrators can delete notebooks.";
+      }
       
       // Provide more specific error messages based on the error type
       if (error?.code === 'PGRST116') {
@@ -118,5 +127,6 @@ export const useNotebookDelete = () => {
   return {
     deleteNotebook: deleteNotebook.mutate,
     isDeleting: deleteNotebook.isPending,
+    canDelete: userProfile?.role === 'admin',
   };
 };

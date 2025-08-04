@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useAuth } from '@/contexts/AuthContext';
 
 const NotebookGrid = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -22,6 +23,8 @@ const NotebookGrid = () => {
     isCreating
   } = useNotebooks();
   const navigate = useNavigate();
+  const { userProfile } = useAuth();
+  const isAdmin = userProfile?.role === 'admin';
 
   const sortedNotebooks = useMemo(() => {
     if (!notebooks) return [];
@@ -71,9 +74,23 @@ const NotebookGrid = () => {
 
   return <div>
       <div className="flex items-center justify-between mb-8">
-        <Button className="bg-black hover:bg-gray-800 text-white rounded-full px-6" onClick={handleCreateNotebook} disabled={isCreating}>
-          {isCreating ? 'Creating...' : '+ Create new'}
-        </Button>
+        {/* Only show create button for admin */}
+        {isAdmin && (
+          <Button 
+            className="bg-black hover:bg-gray-800 text-white rounded-full px-6" 
+            onClick={handleCreateNotebook} 
+            disabled={isCreating}
+          >
+            {isCreating ? 'Creating...' : '+ Create new'}
+          </Button>
+        )}
+        
+        {/* For non-admin users, show a message */}
+        {!isAdmin && (
+          <div className="text-gray-600">
+            <p>Available notebooks managed by administrators</p>
+          </div>
+        )}
         
         <div className="flex items-center space-x-4">
           <DropdownMenu>

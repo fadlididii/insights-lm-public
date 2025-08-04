@@ -3,12 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Upload, FileText, Globe, Video, Mic } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNotebooks } from '@/hooks/useNotebooks';
+import { useAuth } from '@/contexts/AuthContext';
+
 const EmptyDashboard = () => {
   const navigate = useNavigate();
-  const {
-    createNotebook,
-    isCreating
-  } = useNotebooks();
+  const { createNotebook, isCreating } = useNotebooks();
+  const { userProfile } = useAuth();
+  const isAdmin = userProfile?.role === 'admin';
   const handleCreateNotebook = () => {
     console.log('Create notebook button clicked');
     console.log('isCreating:', isCreating);
@@ -25,7 +26,21 @@ const EmptyDashboard = () => {
       }
     });
   };
-  return <div className="text-center py-16">
+  if (!isAdmin) {
+    return (
+      <div className="text-center py-16">
+        <div className="mb-12">
+          <h2 className="text-3xl font-medium text-gray-900 mb-4">No notebooks available</h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            There are currently no notebooks available. Please contact an administrator to create notebooks for you to use.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-center py-16">
       <div className="mb-12">
         <h2 className="text-3xl font-medium text-gray-900 mb-4">Create your first notebook</h2>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">Telkomsel AI Assistant is an AI-powered research and writing assistant that works best with the sources you upload</p>
@@ -61,6 +76,8 @@ const EmptyDashboard = () => {
         <Upload className="h-5 w-5 mr-2" />
         {isCreating ? 'Creating...' : 'Create notebook'}
       </Button>
-    </div>;
+    </div>
+  );
 };
+
 export default EmptyDashboard;

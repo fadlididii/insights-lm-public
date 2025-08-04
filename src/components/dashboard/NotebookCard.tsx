@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Crown } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useNotebookDelete } from '@/hooks/useNotebookDelete';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface NotebookCardProps {
   notebook: {
@@ -12,17 +13,17 @@ interface NotebookCardProps {
     icon: string;
     color: string;
     hasCollaborators?: boolean;
+    user_id?: string;
   };
 }
 
-const NotebookCard = ({
-  notebook
-}: NotebookCardProps) => {
+const NotebookCard = ({ notebook }: NotebookCardProps) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const {
-    deleteNotebook,
-    isDeleting
-  } = useNotebookDelete();
+  const { deleteNotebook, isDeleting, canDelete } = useNotebookDelete();
+  const { userProfile, user } = useAuth();
+
+  const isOwnNotebook = notebook.user_id === user?.id;
+  const isAdmin = userProfile?.role === 'admin';
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -31,58 +32,98 @@ const NotebookCard = ({
     setShowDeleteDialog(true);
   };
 
-  const handleConfirmDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    console.log('Confirming delete for notebook:', notebook.id);
+  const handleDeleteConfirm = () => {
     deleteNotebook(notebook.id);
     setShowDeleteDialog(false);
   };
 
-  // Generate CSS classes from color name
-  const colorName = notebook.color || 'gray';
-  const backgroundClass = `bg-${colorName}-100`;
-  const borderClass = `border-${colorName}-200`;
+  // Add this function to handle card click
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Check if click is from delete button or dialog
+    const target = e.target as HTMLElement;
+    const isDeleteRelated = target.closest('[data-delete-action="true"]') || 
+                           target.closest('.delete-button') || 
+                           target.closest('[role="dialog"]') ||
+                           target.closest('[data-radix-collection-item]');
+    
+    if (isDeleteRelated || showDeleteDialog) {
+      e.stopPropagation();
+      e.preventDefault();
+      return;
+    }
+  };
 
-  return <div 
-      className={`rounded-lg border ${borderClass} ${backgroundClass} p-4 hover:shadow-md transition-shadow cursor-pointer relative h-48 flex flex-col`}
+  return (
+    <div 
+      className={`${notebook.color} rounded-lg p-6 cursor-pointer hover:shadow-md transition-shadow relative group`}
+      onClick={handleCardClick}
     >
-      <div className="absolute top-3 right-3" data-delete-action="true">
-        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <AlertDialogTrigger asChild>
-            <button onClick={handleDeleteClick} className="p-1 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 transition-colors delete-button" disabled={isDeleting} data-delete-action="true">
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete this notebook?</AlertDialogTitle>
-              <AlertDialogDescription>
-                You're about to delete this notebook and all of its content. This cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmDelete} className="bg-blue-600 hover:bg-blue-700" disabled={isDeleting}>
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+      {/* Admin badge for notebooks not owned by current user */}
+      {isAdmin && !isOwnNotebook && (
+        <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs flex items-center space-x-1">
+          <Crown className="h-3 w-3" />
+          <span>Admin View</span>
+        </div>
+      )}
+      
+      {/* Delete button - only show for admin */}
+      {canDelete && (
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+            <AlertDialogTrigger asChild>
+              <button
+                onClick={handleDeleteClick}
+                className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors delete-button"
+                data-delete-action="true"
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Notebook</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete "{notebook.title}"? This action cannot be undone and will remove all sources, notes, and chat history associated with this notebook.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteConfirm();
+                  }}
+                  className="bg-red-600 hover:bg-red-700"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
+      
+      <div className="flex items-center space-x-4 mb-4">
+        <span className="text-2xl">{notebook.icon}</span>
+        <div className="flex-1">
+          <h3 className="font-medium text-gray-900 mb-1">{notebook.title}</h3>
+          <p className="text-sm text-gray-600">{notebook.date}</p>
+        </div>
       </div>
       
-      <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-        <span className="text-3xl">{notebook.icon}</span>
+      <div className="flex items-center justify-between text-sm text-gray-600">
+        <span>{notebook.sources} source{notebook.sources !== 1 ? 's' : ''}</span>
+        {notebook.hasCollaborators && (
+          <div className="flex -space-x-2">
+            <div className="w-6 h-6 bg-blue-500 rounded-full border-2 border-white"></div>
+            <div className="w-6 h-6 bg-green-500 rounded-full border-2 border-white"></div>
+          </div>
+        )}
       </div>
-      
-      <h3 className="text-gray-900 mb-2 pr-6 line-clamp-2 text-2xl font-normal flex-grow">
-        {notebook.title}
-      </h3>
-      
-      <div className="flex items-center justify-between text-sm text-gray-500 mt-auto">
-        <span>{notebook.date} • {notebook.sources} source{notebook.sources !== 1 ? 's' : ''}</span>
-      </div>
-    </div>;
+    </div>
+  );
 };
 
 export default NotebookCard;

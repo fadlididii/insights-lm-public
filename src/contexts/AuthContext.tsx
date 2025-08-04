@@ -2,14 +2,32 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import bcrypt from 'bcryptjs';
+
+interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: 'admin' | 'user';
+  avatar_url: string | null;
+  security_question: string | null;
+  security_answer_hash: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 interface AuthContextType {
   user: User | null;
+  userProfile: UserProfile | null;
   session: Session | null;
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
+  isAdmin: boolean;
   signOut: () => Promise<void>;
+  checkSecurityAnswer: (userId: string, answer: string) => Promise<boolean>;
+  updatePassword: (userId: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
+  getUserSecurityQuestion: (email: string) => Promise<{ question: string | null; userId: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,14 +46,38 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const updateAuthState = (newSession: Session | null) => {
+  const updateAuthState = async (newSession: Session | null) => {
     console.log('AuthContext: Updating auth state:', newSession?.user?.email || 'No session');
     setSession(newSession);
     setUser(newSession?.user ?? null);
+    
+    // Fetch user profile with role information
+    if (newSession?.user) {
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', newSession.user.id)
+          .single();
+        
+        if (profileError) {
+          console.error('Error fetching user profile:', profileError);
+          setUserProfile(null);
+        } else {
+          setUserProfile(profile);
+        }
+      } catch (err) {
+        console.error('Error fetching user profile:', err);
+        setUserProfile(null);
+      }
+    } else {
+      setUserProfile(null);
+    }
     
     // Clear any previous errors on successful auth
     if (newSession && error) {
@@ -47,6 +89,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     console.log('AuthContext: Clearing auth state');
     setSession(null);
     setUser(null);
+    setUserProfile(null);
     setError(null);
   };
 
@@ -173,13 +216,95 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
   }, []); // Empty dependency array to run only once
 
+  // Function to get user's security question by email
+  const getUserSecurityQuestion = async (email: string): Promise<{ question: string | null; userId: string | null }> => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, security_question')
+        .eq('email', email)
+        .single();
+      
+      if (error || !data) {
+        return { question: null, userId: null };
+      }
+      
+      return { question: data.security_question, userId: data.id };
+    } catch (err) {
+      console.error('Error fetching security question:', err);
+      return { question: null, userId: null };
+    }
+  };
+
+  // Function to check security answer
+  const checkSecurityAnswer = async (userId: string, answer: string): Promise<boolean> => {
+    try {
+      // Log attempt
+      await supabase.from('security_question_attempts').insert({
+        user_id: userId,
+        ip_address: null, // You can implement IP tracking if needed
+        success: false
+      });
+
+      // Get user's hashed security answer
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('security_answer_hash')
+        .eq('id', userId)
+        .single();
+      
+      if (error || !data?.security_answer_hash) {
+        return false;
+      }
+      
+      // Compare with bcrypt
+      const isValid = await bcrypt.compare(answer.toLowerCase().trim(), data.security_answer_hash);
+      
+      // Update attempt with success status
+      if (isValid) {
+        await supabase.from('security_question_attempts').insert({
+          user_id: userId,
+          ip_address: null,
+          success: true
+        });
+      }
+      
+      return isValid;
+    } catch (err) {
+      console.error('Error checking security answer:', err);
+      return false;
+    }
+  };
+
+  // Function to update password
+  const updatePassword = async (userId: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('update-password', {
+        body: { userId, newPassword }
+      });
+      
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      
+      return data;
+    } catch (err) {
+      return { success: false, error: 'Failed to update password' };
+    }
+  };
+
   const value: AuthContextType = {
     user,
+    userProfile,
     session,
     loading,
     error,
-    isAuthenticated: !!user && !!session,
+    isAuthenticated: !!session,
+    isAdmin: userProfile?.role === 'admin',
     signOut,
+    checkSecurityAnswer,
+    updatePassword,
+    getUserSecurityQuestion
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

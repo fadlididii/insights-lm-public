@@ -1,9 +1,10 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { User, LogOut } from 'lucide-react';
+import { User, LogOut, Crown } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useLogout } from '@/services/authService';
+import { useAuth } from '@/contexts/AuthContext';
 import Logo from '@/components/ui/Logo';
 
 interface DashboardHeaderProps {
@@ -12,6 +13,8 @@ interface DashboardHeaderProps {
 
 const DashboardHeader = ({ userEmail }: DashboardHeaderProps) => {
   const { logout } = useLogout();
+  const { userProfile } = useAuth();
+  const isAdmin = userProfile?.role === 'admin';
 
   return (
     <header className="bg-white px-6 py-4">
@@ -19,6 +22,13 @@ const DashboardHeader = ({ userEmail }: DashboardHeaderProps) => {
         <div className="flex items-center space-x-2">
           <Logo />
           <h1 className="text-xl font-medium text-gray-900">Telkomsel AI Assistant</h1>
+          {/* Admin badge */}
+          {isAdmin && (
+            <div className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm flex items-center space-x-1">
+              <Crown className="h-4 w-4" />
+              <span>Admin</span>
+            </div>
+          )}
         </div>
         
         <div className="flex items-center space-x-4">
@@ -31,6 +41,10 @@ const DashboardHeader = ({ userEmail }: DashboardHeaderProps) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
+              <div className="px-3 py-2 border-b">
+                <p className="text-sm font-medium">{userEmail}</p>
+                <p className="text-xs text-gray-500 capitalize">{userProfile?.role || 'user'}</p>
+              </div>
               <DropdownMenuItem onClick={logout} className="cursor-pointer">
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out

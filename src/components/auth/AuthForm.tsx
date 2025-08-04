@@ -4,15 +4,25 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import bcrypt from 'bcryptjs';
 
 const AuthForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [securityQuestion, setSecurityQuestion] = useState('');
+  const [securityAnswer, setSecurityAnswer] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -25,43 +35,236 @@ const AuthForm = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      console.log('Attempting sign in for:', email);
-      
-      const { error, data } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+  // Enhanced form validation
+  const validateForm = () => {
+    if (!email || !password) {
+      toast({
+        title: "Validation Error",
+        description: "Email and password are required.",
+        variant: "destructive",
       });
+      return false;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Password validation
+    if (password.length < 8) {
+      toast({
+        title: "Validation Error",
+        description: "Password must be at least 8 characters long.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (isSignUp) {
+      if (!fullName.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Full name is required for registration.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      if (!securityQuestion.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Security question is required for registration.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      if (!securityAnswer.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Security answer is required for registration.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      if (securityAnswer.length < 3) {
+        toast({
+          title: "Validation Error",
+          description: "Security answer must be at least 3 characters long.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      if (password !== confirmPassword) {
+        toast({
+          title: "Validation Error",
+          description: "Passwords do not match.",
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  // Function to check if email already exists
+  const checkEmailExists = async (email: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', email)
+        .single();
       
-      if (error) {
-        console.error('Sign in error:', error);
-        if (error.message.includes('Invalid login credentials')) {
-          throw new Error('Invalid email or password. Please check your credentials and try again.');
-        } else if (error.message.includes('Email not confirmed')) {
-          throw new Error('Please check your email and click the confirmation link before signing in.');
-        } else {
-          throw error;
-        }
+      if (error && error.code !== 'PGRST116') {
+        // PGRST116 is "not found" error, which means email doesn't exist
+        console.error('Error checking email:', error);
+        return false;
       }
       
-      console.log('Sign in successful:', data.user?.email);
-      
-      toast({
-        title: "Welcome back!",
-        description: "You have successfully signed in.",
-      });
+      return !!data; // Returns true if email exists, false if not
+    } catch (err) {
+      console.error('Error checking email existence:', err);
+      return false;
+    }
+  };
 
-      // The AuthContext will handle the redirect automatically
-      
-    } catch (error: any) {
-      console.error('Auth form error:', error);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+    
+    setLoading(true);
+    
+    try {
+      if (isSignUp) {
+        // Check if email already exists before proceeding with registration
+        const emailExists = await checkEmailExists(email);
+        
+        if (emailExists) {
+          toast({
+            title: "Registration Failed",
+            description: "An account with this email already exists. Please use a different email or try signing in.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Hash security answer
+        const saltRounds = 12;
+        const hashedSecurityAnswer = await bcrypt.hash(securityAnswer.toLowerCase().trim(), saltRounds);
+        
+        // Sign up user
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: undefined, // Disable email confirmation redirect
+            data: {
+              full_name: fullName,
+              security_question: securityQuestion,
+              security_answer_hash: hashedSecurityAnswer
+            }
+          }
+        });
+        
+        if (authError) {
+          // Handle specific Supabase auth errors
+          if (authError.message.includes('already registered')) {
+            toast({
+              title: "Registration Failed",
+              description: "An account with this email already exists. Please use a different email or try signing in.",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Registration Failed",
+              description: authError.message,
+              variant: "destructive",
+            });
+          }
+          return;
+        }
+        
+        // Update profile with security question data
+        if (authData.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({
+              security_question: securityQuestion,
+              security_answer_hash: hashedSecurityAnswer,
+              full_name: fullName,
+              email: email
+            })
+            .eq('id', authData.user.id);
+          
+          if (profileError) {
+            console.error('Error updating profile with security data:', profileError);
+          }
+        }
+        
+        // Reset form fields
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+        setFullName('');
+        setSecurityQuestion('');
+        setSecurityAnswer('');
+        
+        // Switch to login mode
+        setIsSignUp(false);
+        
+        toast({
+          title: "Registration Successful",
+          description: "Your account has been created successfully. Please sign in to continue.",
+        });
+        
+      } else {
+        // Sign in
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        if (error) {
+          // Handle email confirmation error specifically
+          if (error.message.includes('Email not confirmed')) {
+            toast({
+              title: "Account Setup Required",
+              description: "Please create a new account or contact support. Email confirmation is disabled for new accounts.",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Login Failed",
+              description: error.message,
+              variant: "destructive",
+            });
+          }
+          return;
+        }
+        
+        toast({
+          title: "Login Successful",
+          description: "Welcome back!",
+        });
+      }
+    } catch (error) {
+      console.error('Auth error:', error);
       toast({
-        title: "Sign In Error",
-        description: error.message,
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -70,44 +273,158 @@ const AuthForm = () => {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Sign In</CardTitle>
-        <CardDescription>
-          Enter your credentials to access your notebooks
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="Enter your email"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="Enter your password"
-              minLength={6}
-            />
-          </div>
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Signing In...' : 'Sign In'}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <img
+            className="mx-auto h-12 w-auto"
+            src="/telkomsel-logo.png"
+            alt="Telkomsel"
+          />
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+            {isSignUp ? 'Create your account' : 'Sign in to your account'}
+          </h2>
+        </div>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>{isSignUp ? 'Register' : 'Login'}</CardTitle>
+            <CardDescription>
+              {isSignUp 
+                ? 'Create a new account with security question for password recovery' 
+                : 'Enter your credentials to access your account'
+              }
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {isSignUp && (
+                <div>
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required={isSignUp}
+                    placeholder="Enter your full name"
+                  />
+                </div>
+              )}
+              
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="Enter your email"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              
+              {isSignUp && (
+                <>
+                  <div>
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required={isSignUp}
+                        placeholder="Confirm your password"
+                      />
+                      <button
+                        type="button"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="securityQuestion">Security Question</Label>
+                    <Textarea
+                      id="securityQuestion"
+                      value={securityQuestion}
+                      onChange={(e) => setSecurityQuestion(e.target.value)}
+                      required={isSignUp}
+                      placeholder="Enter a security question (e.g., What is your first pet's name?)"
+                      rows={2}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="securityAnswer">Security Answer</Label>
+                    <Input
+                      id="securityAnswer"
+                      type="text"
+                      value={securityAnswer}
+                      onChange={(e) => setSecurityAnswer(e.target.value)}
+                      required={isSignUp}
+                      placeholder="Enter the answer to your security question"
+                    />
+                  </div>
+                </>
+              )}
+              
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSignUp ? 'Register' : 'Sign In'}
+              </Button>
+            </form>
+            
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-sm text-blue-600 hover:text-blue-500"
+              >
+                {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+              </button>
+            </div>
+            
+            {!isSignUp && (
+              <div className="mt-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => navigate('/forgot-password')}
+                  className="text-sm text-blue-600 hover:text-blue-500"
+                >
+                  Forgot your password?
+                </button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 };
 

@@ -152,6 +152,9 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          role: 'admin' | 'user'
+          security_question: string | null
+          security_answer_hash: string | null
           updated_at: string
         }
         Insert: {
@@ -160,6 +163,9 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          role?: 'admin' | 'user'
+          security_question?: string | null
+          security_answer_hash?: string | null
           updated_at?: string
         }
         Update: {
@@ -168,9 +174,44 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          role?: 'admin' | 'user'
+          security_question?: string | null
+          security_answer_hash?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      security_question_attempts: {
+        Row: {
+          id: string
+          user_id: string
+          ip_address: string | null
+          attempted_at: string
+          success: boolean
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          ip_address?: string | null
+          attempted_at?: string
+          success?: boolean
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          ip_address?: string | null
+          attempted_at?: string
+          success?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_question_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sources: {
         Row: {
