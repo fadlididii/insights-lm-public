@@ -111,6 +111,7 @@ export type Database = {
           extracted_text: string | null
           id: string
           notebook_id: string
+          user_id: string  // Add this line
           source_type: string | null
           title: string
           updated_at: string
@@ -121,6 +122,7 @@ export type Database = {
           extracted_text?: string | null
           id?: string
           notebook_id: string
+          user_id: string  // Add this line
           source_type?: string | null
           title: string
           updated_at?: string
@@ -131,6 +133,7 @@ export type Database = {
           extracted_text?: string | null
           id?: string
           notebook_id?: string
+          user_id?: string  // Add this line
           source_type?: string | null
           title?: string
           updated_at?: string
@@ -141,6 +144,13 @@ export type Database = {
             columns: ["notebook_id"]
             isOneToOne: false
             referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_user_id_fkey"  // Add this relationship
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

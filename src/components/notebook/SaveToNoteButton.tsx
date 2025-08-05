@@ -58,7 +58,13 @@ const SaveToNoteButton = ({ content, notebookId, onSaved }: SaveToNoteButtonProp
     console.log('SaveToNoteButton: Final source_type:', source_type);
     console.log('SaveToNoteButton: Final title:', title);
     
-    createNote({ title, content: contentText, source_type, extracted_text });
+    createNote({ 
+      title, 
+      content: contentText, 
+      source_type, 
+      extracted_text,
+      notebook_id: notebookId // Add this line
+    });
     onSaved?.();
   };
 
