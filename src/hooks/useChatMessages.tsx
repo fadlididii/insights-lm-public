@@ -175,10 +175,12 @@ export const useChatMessages = (notebookId?: string) => {
     queryFn: async () => {
       if (!notebookId) return [];
       
+      // Inside useChatMessages hook, update query
       const { data, error } = await supabase
         .from('n8n_chat_histories')
         .select('*')
         .eq('session_id', notebookId)
+        .eq('user_id', user?.id ?? '')  // Add null check for user_id
         .order('id', { ascending: true });
 
       if (error) throw error;

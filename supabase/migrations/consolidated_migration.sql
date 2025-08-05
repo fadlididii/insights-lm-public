@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS public.n8n_chat_histories (
     id serial not null,
     session_id uuid not null,
     message jsonb not null,
+    user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
     constraint n8n_chat_histories_pkey primary key (id)
 );
 
@@ -97,7 +98,7 @@ CREATE TABLE IF NOT EXISTS public.documents (
     id bigserial PRIMARY KEY,
     content text,
     metadata jsonb,
-    embedding vector(1536)
+    embedding vector(768)
 );
 
 -- Create security question attempts table for rate limiting
@@ -132,6 +133,8 @@ CREATE INDEX IF NOT EXISTS idx_notes_user_id ON public.notes(user_id);
 
 -- Chat histories indexes
 CREATE INDEX IF NOT EXISTS idx_chat_histories_session_id ON public.n8n_chat_histories(session_id);
+CREATE INDEX IF NOT EXISTS idx_n8n_chat_histories_user_id ON public.n8n_chat_histories(user_id);
+CREATE INDEX IF NOT EXISTS idx_n8n_chat_histories_session_user ON public.n8n_chat_histories(session_id, user_id);
 
 -- Security attempts indexes
 CREATE INDEX IF NOT EXISTS idx_security_attempts_user_time 
@@ -436,27 +439,22 @@ CREATE POLICY "Users can delete their own notes only"
 -- RLS POLICIES - CHAT HISTORIES (USER-SPECIFIC)
 -- ============================================================================
 
--- Users can view their own chat histories only
+-- Users can ONLY view their own chat histories per notebook
 DROP POLICY IF EXISTS "Users can view their own chat histories only" ON public.n8n_chat_histories;
-CREATE POLICY "Users can view their own chat histories only"
+CREATE POLICY "Users can view their own chat histories per notebook"
     ON public.n8n_chat_histories FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.notebooks 
-            WHERE id = session_id::uuid
-        )
-    );
+    USING (user_id = auth.uid());
 
--- Users can insert chat histories
+-- Users can ONLY insert their own chat histories
 DROP POLICY IF EXISTS "Users can insert chat histories" ON public.n8n_chat_histories;
-CREATE POLICY "Users can insert chat histories"
+CREATE POLICY "Users can insert their own chat histories"
     ON public.n8n_chat_histories FOR INSERT
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM public.notebooks 
-            WHERE id = session_id::uuid
-        )
-    );
+    WITH CHECK (user_id = auth.uid());
+
+-- Users can ONLY delete their own chat histories
+CREATE POLICY "Users can delete their own chat histories"
+    ON public.n8n_chat_histories FOR DELETE
+    USING (user_id = auth.uid());
 
 -- Service role can manage all chat histories
 DROP POLICY IF EXISTS "Service role can manage chat histories" ON public.n8n_chat_histories;
