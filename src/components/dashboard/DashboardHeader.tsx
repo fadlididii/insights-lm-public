@@ -17,25 +17,24 @@ const DashboardHeader = ({ userEmail }: DashboardHeaderProps) => {
   const isAdmin = userProfile?.role === 'admin';
 
   return (
-    <header className="bg-white px-6 py-4">
+    <header className="bg-white px-6 py-4 shadow-sm border-b border-gray-100 transition-shadow">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Logo />
-          <h1 className="text-xl font-medium text-gray-900">Telkomsel AI Assistant</h1>
+          <h1 className="text-xl font-semibold text-gray-900 tracking-tight">Telkomsel AI Assistant</h1>
           {/* Admin badge */}
           {isAdmin && (
-            <div className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm flex items-center space-x-1">
+            <div className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm flex items-center space-x-1 shadow transition-transform hover:scale-105">
               <Crown className="h-4 w-4" />
               <span>Admin</span>
             </div>
           )}
         </div>
-        
         <div className="flex items-center space-x-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="p-0">
-                <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-red-700 transition-colors">
+                <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-red-700 transition-colors shadow hover:scale-105">
                   <User className="h-4 w-4 text-white" />
                 </div>
               </Button>

@@ -77,7 +77,7 @@ const NotebookGrid = () => {
         {/* Only show create button for admin */}
         {isAdmin && (
           <Button 
-            className="bg-black hover:bg-gray-800 text-white rounded-full px-6" 
+            className="bg-black hover:bg-gray-800 text-white rounded-full px-6 shadow-lg transition-transform hover:scale-105" 
             onClick={handleCreateNotebook} 
             disabled={isCreating}
           >
@@ -114,21 +114,23 @@ const NotebookGrid = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {sortedNotebooks.map(notebook => <div key={notebook.id} onClick={e => handleNotebookClick(notebook.id, e)}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {sortedNotebooks.map(notebook => (
+          <div key={notebook.id} onClick={e => handleNotebookClick(notebook.id, e)} className="transition-shadow hover:shadow-xl hover:-translate-y-1 cursor-pointer">
             <NotebookCard notebook={{
-          id: notebook.id,
-          title: notebook.title,
-          date: new Date(notebook.updated_at).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-          }),
-          sources: notebook.sources?.[0]?.count || 0,
-          icon: notebook.icon || '📝',
-          color: notebook.color || 'bg-gray-100'
-        }} />
-          </div>)}
+              id: notebook.id,
+              title: notebook.title,
+              date: new Date(notebook.updated_at).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+              }),
+              sources: notebook.sources?.[0]?.count || 0,
+              icon: notebook.icon || '📝',
+              color: notebook.color || 'bg-gray-100'
+            }} />
+          </div>
+        ))}
       </div>
     </div>;
 };
