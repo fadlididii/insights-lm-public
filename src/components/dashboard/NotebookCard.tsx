@@ -58,13 +58,6 @@ const NotebookCard = ({ notebook }: NotebookCardProps) => {
       className={`${notebook.color} rounded-lg p-6 cursor-pointer hover:shadow-md transition-shadow relative group`}
       onClick={handleCardClick}
     >
-      {/* Admin badge for notebooks not owned by current user */}
-      {isAdmin && !isOwnNotebook && (
-        <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs flex items-center space-x-1">
-          <Crown className="h-3 w-3" />
-          <span>Admin View</span>
-        </div>
-      )}
       
       {/* Delete button - only show for admin */}
       {canDelete && (
