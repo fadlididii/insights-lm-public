@@ -1,11 +1,12 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { User, LogOut, Crown } from 'lucide-react';
+import { User, LogOut, Crown, Shield } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useLogout } from '@/services/authService';
 import { useAuth } from '@/contexts/AuthContext';
 import Logo from '@/components/ui/Logo';
+import { useNavigate } from 'react-router-dom';
 
 interface DashboardHeaderProps {
   userEmail?: string;
@@ -14,14 +15,24 @@ interface DashboardHeaderProps {
 const DashboardHeader = ({ userEmail }: DashboardHeaderProps) => {
   const { logout } = useLogout();
   const { userProfile } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = userProfile?.role === 'admin';
+
+  const handleLogoClick = () => {
+    navigate('/');
+  };
 
   return (
     <header className="bg-white px-6 py-4 shadow-sm border-b border-gray-100 transition-shadow">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Logo />
-          <h1 className="text-xl font-semibold text-gray-900 tracking-tight">Telkomsel AI Assistant</h1>
+          <button 
+            onClick={handleLogoClick}
+            className="hover:bg-gray-50 rounded transition-colors p-1"
+          >
+            <Logo />
+          </button>
+          <h1 className="text-xl font-medium text-gray-900">Telkomsel AI Assistant</h1>
           {/* Admin badge */}
           {isAdmin && (
             <div className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm flex items-center space-x-1 shadow transition-transform hover:scale-105">
@@ -31,6 +42,19 @@ const DashboardHeader = ({ userEmail }: DashboardHeaderProps) => {
           )}
         </div>
         <div className="flex items-center space-x-4">
+          {/* Admin Panel Button */}
+          {isAdmin && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate('/admin')}
+              className="flex items-center space-x-2"
+            >
+              <Shield className="h-4 w-4" />
+              <span>Admin Panel</span>
+            </Button>
+          )}
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="p-0">

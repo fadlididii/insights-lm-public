@@ -107,7 +107,8 @@ const StudioSidebar = ({
       createNote({
         title,
         content,
-        source_type: 'user'
+        source_type: 'user',
+        notebook_id: notebookId // Add this line
       });
     }
     setEditingNote(null);

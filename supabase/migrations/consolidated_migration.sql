@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS public.notes (
     content text NOT NULL,
     source_type text DEFAULT 'user',
     extracted_text text,
+    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -127,6 +128,7 @@ CREATE INDEX IF NOT EXISTS idx_sources_processing_status ON public.sources(proce
 
 -- Notes indexes
 CREATE INDEX IF NOT EXISTS idx_notes_notebook_id ON public.notes(notebook_id);
+CREATE INDEX IF NOT EXISTS idx_notes_user_id ON public.notes(user_id);
 
 -- Chat histories indexes
 CREATE INDEX IF NOT EXISTS idx_chat_histories_session_id ON public.n8n_chat_histories(session_id);
@@ -263,6 +265,28 @@ CREATE POLICY "Users can insert their own profile"
     ON public.profiles FOR INSERT
     WITH CHECK (auth.uid() = id);
 
+-- Add admin policies for profile management
+DROP POLICY IF EXISTS "Admin can update any profile" ON public.profiles;
+CREATE POLICY "Admin can update any profile" ON public.profiles
+    FOR UPDATE 
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.profiles 
+            WHERE id = auth.uid() AND role = 'admin'
+        )
+    );
+
+DROP POLICY IF EXISTS "Admin can delete any profile" ON public.profiles;
+CREATE POLICY "Admin can delete any profile" ON public.profiles
+    FOR DELETE 
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.profiles 
+            WHERE id = auth.uid() AND role = 'admin'
+        )
+        AND auth.uid() != profiles.id  -- Prevent admin from deleting their own account
+    );
+
 DROP POLICY IF EXISTS "Service role can manage all profiles" ON public.profiles;
 CREATE POLICY "Service role can manage all profiles"
     ON public.profiles FOR ALL
@@ -357,37 +381,51 @@ CREATE POLICY "Only admin can delete sources"
     );
 
 -- ============================================================================
--- RLS POLICIES - NOTES
+-- RLS POLICIES - NOTES (USER-SPECIFIC)
 -- ============================================================================
 
--- Users can view notes from all notebooks
-DROP POLICY IF EXISTS "Users can view notes from all notebooks" ON public.notes;
-CREATE POLICY "Users can view notes from all notebooks"
+-- Users can only view their own notes
+DROP POLICY IF EXISTS "Users can view their own notes only" ON public.notes;
+CREATE POLICY "Users can view their own notes only"
     ON public.notes FOR SELECT
-    USING (true); -- All users can view notes since notebooks are global
-
--- Users can create notes in any notebook
-DROP POLICY IF EXISTS "Users can create notes in any notebook" ON public.notes;
-CREATE POLICY "Users can create notes in any notebook"
-    ON public.notes FOR INSERT
-    WITH CHECK (true); -- All users can create notes
-
--- Users can update their own notes, admin can update all
-DROP POLICY IF EXISTS "Users can update notes based on role" ON public.notes;
-CREATE POLICY "Users can update notes based on role"
-    ON public.notes FOR UPDATE
     USING (
+        user_id = auth.uid() OR
         EXISTS (
             SELECT 1 FROM public.profiles 
             WHERE id = auth.uid() AND role = 'admin'
         )
     );
 
--- Users can delete their own notes, admin can delete all
-DROP POLICY IF EXISTS "Users can delete notes based on role" ON public.notes;
-CREATE POLICY "Users can delete notes based on role"
+-- Users can only create notes for themselves
+DROP POLICY IF EXISTS "Users can create their own notes only" ON public.notes;
+CREATE POLICY "Users can create their own notes only"
+    ON public.notes FOR INSERT
+    WITH CHECK (
+        user_id = auth.uid() OR
+        EXISTS (
+            SELECT 1 FROM public.profiles 
+            WHERE id = auth.uid() AND role = 'admin'
+        )
+    );
+
+-- Users can only update their own notes
+DROP POLICY IF EXISTS "Users can update their own notes only" ON public.notes;
+CREATE POLICY "Users can update their own notes only"
+    ON public.notes FOR UPDATE
+    USING (
+        user_id = auth.uid() OR
+        EXISTS (
+            SELECT 1 FROM public.profiles 
+            WHERE id = auth.uid() AND role = 'admin'
+        )
+    );
+
+-- Users can only delete their own notes
+DROP POLICY IF EXISTS "Users can delete their own notes only" ON public.notes;
+CREATE POLICY "Users can delete their own notes only"
     ON public.notes FOR DELETE
     USING (
+        user_id = auth.uid() OR
         EXISTS (
             SELECT 1 FROM public.profiles 
             WHERE id = auth.uid() AND role = 'admin'

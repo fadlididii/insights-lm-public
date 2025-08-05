@@ -13,6 +13,8 @@ import NotFound from "./pages/NotFound";
 import ForgotPassword from '@/components/auth/ForgotPassword';
 import Index from './pages/Index';
 import React from 'react';
+import AdminPanel from './pages/AdminPanel';
+import AdminRoute from '@/components/auth/AdminRoute';
 
 const queryClient = new QueryClient();
 
@@ -86,6 +88,16 @@ function App() {
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route 
+                    path="/admin" 
+                    element={
+                      <ProtectedRoute fallback={<Auth />}>
+                        <AdminRoute>
+                          <AdminPanel />
+                        </AdminRoute>
+                      </ProtectedRoute>
+                    } 
+                  />
                   <Route 
                     path="/notebook/:id" 
                     element={

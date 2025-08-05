@@ -58,7 +58,6 @@ const NotebookCard = ({ notebook }: NotebookCardProps) => {
       className={`${notebook.color} rounded-lg p-6 cursor-pointer hover:shadow-md transition-shadow relative group shadow-lg`}
       onClick={handleCardClick}
     >
-     
       
       {/* Delete button - only show for admin */}
       {canDelete && (
