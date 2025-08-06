@@ -31,9 +31,9 @@ const Notebook = () => {
   };
 
   // Dynamic width calculations for desktop - expand studio when editing notes
-  const sourcesWidth = isSourceDocumentOpen ? 'w-[35%]' : 'w-[25%]';
-  const studioWidth = 'w-[30%]'; // Expanded width for note editing
-  const chatWidth = isSourceDocumentOpen ? 'w-[35%]' : 'w-[45%]';
+  const sourcesWidth = isSourceDocumentOpen ? 'w-[30%]' : 'w-[20%]';
+  const studioWidth = 'w-[22%]'; // Reduced width for more chat space
+  const chatWidth = isSourceDocumentOpen ? 'w-[45%]' : 'w-[58%]';
 
   return (
     <div className="h-screen bg-white flex flex-col overflow-hidden">

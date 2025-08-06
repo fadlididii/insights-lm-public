@@ -85,7 +85,7 @@ const NotebookHeader = ({ title, notebookId }: NotebookHeaderProps) => {
                 className="text-lg font-medium text-gray-900 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 transition-colors"
                 onClick={handleTitleClick}
               >
-                {title}
+                Telkomsel AI Assistant - {title}
               </span>
             )}
           </div>

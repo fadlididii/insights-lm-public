@@ -409,7 +409,7 @@ const AddSourcesDialog = ({
               <div className="flex items-center space-x-2">
                 <div className="w-6 h-6 flex items-center justify-center">
                   <img 
-                    src="/telkomsel-logo.png" 
+                    src="/RGB_TELKOMSEL_LOCK UP_Full Colour-01.png" 
                     alt="Telkomsel Logo" 
                     className="w-6 h-6 object-contain"
                   />

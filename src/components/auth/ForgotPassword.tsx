@@ -207,7 +207,7 @@ const ForgotPassword = () => {
                 placeholder="Enter your email address"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full bg-red-600 text-white font-bold shadow-md rounded-lg" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Continue
             </Button>
@@ -239,13 +239,13 @@ const ForgotPassword = () => {
                 {maxAttempts - attempts} attempts remaining
               </div>
             )}
-            <Button type="submit" className="w-full" disabled={loading || attempts >= maxAttempts}>
+            <Button type="submit" className="w-full bg-red-600 text-white font-bold shadow-md rounded-lg" disabled={loading || attempts >= maxAttempts}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Verify Answer
             </Button>
           </form>
         );
-        
+
       case 'newPassword':
         return (
           <form onSubmit={handlePasswordReset} className="space-y-4">
@@ -289,7 +289,7 @@ const ForgotPassword = () => {
                 </button>
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full bg-red-600 text-white font-bold shadow-md rounded-lg" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Reset Password
             </Button>
@@ -302,20 +302,20 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <img
-            className="mx-auto h-12 w-auto"
-            src="/telkomsel-logo.png"
+            className="mx-auto h-20 w-auto drop-shadow-lg"
+            src="/RGB_TELKOMSEL_LOCK UP_Full Colour-01.png"
             alt="Telkomsel"
           />
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-3xl font-bold text-black-700 drop-shadow-sm">
             Reset Your Password
           </h2>
         </div>
         
-        <Card>
+        <Card className="shadow-xl rounded-2xl border border-red-100 bg-white/90">
           <CardHeader>
             <div className="flex items-center space-x-2">
               <button

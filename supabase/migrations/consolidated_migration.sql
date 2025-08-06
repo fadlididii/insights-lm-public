@@ -297,6 +297,13 @@ CREATE POLICY "Service role can manage all profiles"
     USING (true)
     WITH CHECK (true);
 
+-- Allow security question lookup by email
+DROP POLICY IF EXISTS "Allow security question lookup by email" ON public.profiles;
+CREATE POLICY "Allow security question lookup by email"
+    ON public.profiles FOR SELECT
+    TO public
+    USING (security_question IS NOT NULL);
+
 -- ============================================================================
 -- RLS POLICIES - NOTEBOOKS (GLOBAL ACCESS)
 -- ============================================================================
