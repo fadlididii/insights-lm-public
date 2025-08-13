@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Send, Upload, FileText, Loader2, RefreshCw } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -70,6 +70,24 @@ const ChatArea = ({
   // Ref for auto-scrolling to the most recent message
   const latestMessageRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Handle Enter key for sending message (Shift+Enter for new line)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey && !isChatDisabled && !isSending && !pendingUserMessage) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [message]);
+
   useEffect(() => {
     // If we have new messages and we have a pending message, clear it
     if (messages.length > lastMessageCount && pendingUserMessage) {
@@ -95,40 +113,37 @@ const ChatArea = ({
       }
     }
   }, [pendingUserMessage, messages.length, showAiLoading]);
+
   const handleSendMessage = async (messageText?: string) => {
     const textToSend = messageText || message.trim();
-    if (textToSend && notebookId) {
-      try {
-        // Store the pending message to display immediately
-        setPendingUserMessage(textToSend);
-        await sendMessage({
-          notebookId: notebookId,
-          role: 'user',
-          content: textToSend
-        });
-        setMessage('');
+    if (!textToSend || isChatDisabled || isSending || pendingUserMessage) return;
+    
+    console.log('Sending message:', textToSend);
+    
+    // Set pending message and clear input
+    setPendingUserMessage(textToSend);
+    setMessage('');
+    setShowAiLoading(true);
+    
+    try {
+      await sendMessage(textToSend);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Clear pending state on error
+      setPendingUserMessage(null);
+      setShowAiLoading(false);
+    }
+  };
 
-        // Show AI loading after user message is sent
-        setShowAiLoading(true);
-      } catch (error) {
-        console.error('Failed to send message:', error);
-        // Clear pending message on error
-        setPendingUserMessage(null);
-        setShowAiLoading(false);
-      }
-    }
-  };
   const handleRefreshChat = () => {
-    if (notebookId) {
-      console.log('Refresh button clicked for notebook:', notebookId);
-      deleteChatHistory(notebookId);
-      // Reset clicked questions when chat is refreshed
-      setClickedQuestions(new Set());
-    }
+    deleteChatHistory();
   };
+
   const handleCitationClick = (citation: Citation) => {
+    console.log('Citation clicked in ChatArea:', citation);
     onCitationClick?.(citation);
   };
+
   const handleExampleQuestionClick = (question: string) => {
     // Add question to clicked set to remove it from display
     setClickedQuestions(prev => new Set(prev).add(question));
@@ -170,16 +185,21 @@ const ChatArea = ({
     }
     return "Start typing...";
   };
-  return <div className="flex-1 flex flex-col h-full overflow-hidden">
-      {hasSource ? <div className="flex-1 flex flex-col h-full overflow-hidden">
+  
+  return (
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      {hasSource ? (
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
           {/* Chat Header */}
           <div className="p-4 border-b border-gray-200 flex-shrink-0">
             <div className="max-w-4xl mx-auto flex items-center justify-between">
               <h2 className="text-lg font-medium text-gray-900">Chat</h2>
-              {shouldShowRefreshButton && <Button variant="ghost" size="sm" onClick={handleRefreshChat} disabled={isDeletingChatHistory || isChatDisabled} className="flex items-center space-x-2">
+              {shouldShowRefreshButton && (
+                <Button variant="ghost" size="sm" onClick={handleRefreshChat} disabled={isDeletingChatHistory || isChatDisabled} className="flex items-center space-x-2">
                   <RefreshCw className={`h-4 w-4 ${isDeletingChatHistory ? 'animate-spin' : ''}`} />
                   <span>{isDeletingChatHistory ? 'Clearing...' : 'Clear Chat'}</span>
-                </Button>}
+                </Button>
+              )}
             </div>
           </div>
 
@@ -189,7 +209,11 @@ const ChatArea = ({
               <div className="max-w-4xl mx-auto">
                 <div className="flex items-center space-x-4 mb-6">
                   <div className="w-10 h-10 flex items-center justify-center bg-transparent">
-                    {isGenerating ? <Loader2 className="text-black font-normal w-10 h-10 animate-spin" /> : <span className="text-[40px] leading-none">{notebook?.icon || '☕'}</span>}
+                    {isGenerating ? (
+                      <Loader2 className="text-black font-normal w-10 h-10 animate-spin" />
+                    ) : (
+                      <span className="text-[40px] leading-none">{notebook?.icon || '☕'}</span>
+                    )}
                   </div>
                   <div>
                     <h1 className="text-2xl font-medium text-gray-900">
@@ -200,48 +224,57 @@ const ChatArea = ({
                 </div>
                 
                 <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                  {isGenerating ? <div className="flex items-center space-x-2 text-gray-600">
-                      
+                  {isGenerating ? (
+                    <div className="flex items-center space-x-2 text-gray-600">
                       <p>AI is analyzing your source and generating a title and description...</p>
-                    </div> : <MarkdownRenderer content={notebook?.description || 'No description available for this notebook.'} className="prose prose-gray max-w-none text-gray-700 leading-relaxed" />}
+                    </div>
+                  ) : (
+                    <MarkdownRenderer content={notebook?.description || 'No description available for this notebook.'} className="prose prose-gray max-w-none text-gray-700 leading-relaxed" />
+                  )}
                 </div>
 
                 {/* Chat Messages */}
-                {(messages.length > 0 || pendingUserMessage || showAiLoading) && <div className="mb-6 space-y-4">
-                    {messages.map((msg, index) => <div key={msg.id} className={`flex ${isUserMessage(msg) ? 'justify-end' : 'justify-start'}`}>
+                {(messages.length > 0 || pendingUserMessage || showAiLoading) && (
+                  <div className="mb-6 space-y-4">
+                    {messages.map((msg, index) => (
+                      <div key={msg.id} className={`flex ${isUserMessage(msg) ? 'justify-end' : 'justify-start'}`}>
                         <div className={`${isUserMessage(msg) ? 'max-w-xs lg:max-w-md px-4 py-2 bg-blue-500 text-white rounded-lg' : 'w-full'}`}>
                           <div className={isUserMessage(msg) ? '' : 'prose prose-gray max-w-none text-gray-800'}>
                             <MarkdownRenderer content={msg.message.content} className={isUserMessage(msg) ? '' : ''} onCitationClick={handleCitationClick} isUserMessage={isUserMessage(msg)} />
                           </div>
-                          {isAiMessage(msg) && <div className="mt-2 flex justify-start">
+                          {isAiMessage(msg) && (
+                            <div className="mt-2 flex justify-start">
                               <SaveToNoteButton content={msg.message.content} notebookId={notebookId} />
-                            </div>}
+                            </div>
+                          )}
                         </div>
-                      </div>)}
+                      </div>
+                    ))}
                     
                     {/* Pending user message */}
-                    {pendingUserMessage && <div className="flex justify-end">
+                    {pendingUserMessage && (
+                      <div className="flex justify-end">
                         <div className="max-w-xs lg:max-w-md px-4 py-2 bg-blue-500 text-white rounded-lg">
                           <MarkdownRenderer content={pendingUserMessage} className="" isUserMessage={true} />
                         </div>
-                      </div>}
+                      </div>
+                    )}
                     
                     {/* AI Loading Indicator */}
-                    {showAiLoading && <div className="flex justify-start" ref={latestMessageRef}>
+                    {showAiLoading && (
+                      <div className="flex justify-start" ref={latestMessageRef}>
                         <div className="flex items-center space-x-2 px-4 py-3 bg-gray-100 rounded-lg">
                           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{
-                    animationDelay: '0.1s'
-                  }}></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{
-                    animationDelay: '0.2s'
-                  }}></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                         </div>
-                      </div>}
+                      </div>
+                    )}
                     
                     {/* Scroll target for when no AI loading is shown */}
                     {!showAiLoading && shouldShowScrollTarget() && <div ref={latestMessageRef} />}
-                  </div>}
+                  </div>
+                )}
               </div>
             </div>
           </ScrollArea>
@@ -249,39 +282,80 @@ const ChatArea = ({
           {/* Chat Input - Fixed at bottom */}
           <div className="p-6 border-t border-gray-200 flex-shrink-0">
             <div className="max-w-4xl mx-auto">
-              <div className="flex space-x-4">
+              <div className="flex items-end space-x-3">
                 <div className="flex-1 relative">
-                  <Input placeholder={getPlaceholderText()} value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => e.key === 'Enter' && !isChatDisabled && !isSending && !pendingUserMessage && handleSendMessage()} className="pr-12" disabled={isChatDisabled || isSending || !!pendingUserMessage} />
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">
-                    {sourceCount} source{sourceCount !== 1 ? 's' : ''}
+                  <div className="relative border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+                    <Textarea
+                      ref={textareaRef}
+                      placeholder={getPlaceholderText()}
+                      value={message}
+                      onChange={e => setMessage(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      disabled={isChatDisabled || isSending || !!pendingUserMessage}
+                      className="min-h-[44px] max-h-[120px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 pr-20 py-3"
+                      rows={1}
+                      style={{
+                        height: 'auto',
+                        overflowY: message.split('\n').length > 3 ? 'auto' : 'hidden'
+                      }}
+                    />
+                    <div className="absolute right-3 bottom-3 text-sm text-gray-500 pointer-events-none">
+                      {sourceCount} source{sourceCount !== 1 ? 's' : ''}
+                    </div>
                   </div>
                 </div>
-                <Button onClick={() => handleSendMessage()} disabled={!message.trim() || isChatDisabled || isSending || !!pendingUserMessage}>
-                  {isSending || pendingUserMessage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                <Button 
+                  onClick={() => handleSendMessage()} 
+                  disabled={!message.trim() || isChatDisabled || isSending || !!pendingUserMessage}
+                  className="flex-shrink-0 h-[44px] w-[44px] p-0 rounded-lg"
+                  size="sm"
+                >
+                  {isSending || pendingUserMessage ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
               
+              {/* Helper text */}
+              <div className="mt-0.5 text-xs text-gray-500 text-center leading-tight">
+                Press Enter to send, Shift+Enter for new line
+              </div>
+              
               {/* Example Questions Carousel */}
-              {!isChatDisabled && !pendingUserMessage && !showAiLoading && exampleQuestions.length > 0 && <div className="mt-4">
+              {!isChatDisabled && !pendingUserMessage && !showAiLoading && exampleQuestions.length > 0 && (
+                <div className="mt-4">
                   <Carousel className="w-full max-w-4xl">
                     <CarouselContent className="-ml-2 md:-ml-4">
-                      {exampleQuestions.map((question, index) => <CarouselItem key={index} className="pl-2 md:pl-4 basis-auto">
-                          <Button variant="outline" size="sm" className="text-left whitespace-nowrap h-auto py-2 px-3 text-sm" onClick={() => handleExampleQuestionClick(question)}>
+                      {exampleQuestions.map((question, index) => (
+                        <CarouselItem key={index} className="pl-2 md:pl-4 basis-auto">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-left whitespace-nowrap h-auto py-2 px-3 text-sm" 
+                            onClick={() => handleExampleQuestionClick(question)}
+                          >
                             {question}
                           </Button>
-                        </CarouselItem>)}
+                        </CarouselItem>
+                      ))}
                     </CarouselContent>
-                    {exampleQuestions.length > 2 && <>
+                    {exampleQuestions.length > 2 && (
+                      <>
                         <CarouselPrevious className="left-0" />
                         <CarouselNext className="right-0" />
-                      </>}
+                      </>
+                    )}
                   </Carousel>
-                </div>}
+                </div>
+              )}
             </div>
           </div>
-        </div> :
-    // Empty State
-    <div className="flex-1 flex flex-col items-center justify-center p-8 overflow-hidden">
+        </div>
+      ) : (
+        // Empty State
+        <div className="flex-1 flex flex-col items-center justify-center p-8 overflow-hidden">
           <div className="text-center mb-8">
             <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center bg-gray-100">
               <Upload className="h-8 w-8 text-slate-600" />
@@ -304,21 +378,27 @@ const ChatArea = ({
 
           {/* Bottom Input */}
           <div className="w-full max-w-2xl">
-            <div className="flex space-x-4">
-              <Input 
-                placeholder={isAdmin ? "Upload a source to get started" : "Contact admin to add sources"} 
-                disabled 
-                className="flex-1" 
-              />
-              <div className="flex items-center text-sm text-gray-500">
+            <div className="flex items-end space-x-3">
+              <div className="flex-1 relative">
+                <div className="relative border border-gray-300 rounded-lg bg-gray-100">
+                  <Textarea
+                    placeholder={isAdmin ? "Upload a source to get started" : "Contact admin to add sources"}
+                    disabled
+                    className="min-h-[44px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-gray-100"
+                    rows={1}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center text-sm text-gray-500 flex-shrink-0 h-[44px]">
                 0 sources
               </div>
-              <Button disabled>
+              <Button disabled className="flex-shrink-0 h-[44px] w-[44px] p-0 rounded-lg" size="sm">
                 <Send className="h-4 w-4" />
               </Button>
             </div>
           </div>
-        </div>}
+        </div>
+      )}
       
       {/* Footer */}
       <div className="p-4 border-t border-gray-200 flex-shrink-0">
@@ -327,7 +407,8 @@ const ChatArea = ({
       
       {/* Add Sources Dialog */}
       <AddSourcesDialog open={showAddSourcesDialog} onOpenChange={setShowAddSourcesDialog} notebookId={notebookId} />
-    </div>;
+    </div>
+  );
 };
 
 export default ChatArea;
