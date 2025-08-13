@@ -289,10 +289,26 @@ const ForgotPassword = () => {
                 </button>
               </div>
             </div>
-            <Button type="submit" className="w-full bg-red-600 text-white font-bold shadow-md rounded-lg" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Reset Password
+            // Dalam fungsi renderStep(), update styling tombol menjadi:
+            
+            // Untuk tombol submit di setiap step:
+            <Button 
+            type="submit" 
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold shadow-md rounded-lg transition-all duration-200 transform hover:scale-105" 
+            disabled={loading}
+            >
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {/* Text sesuai dengan step */}
             </Button>
+            
+            // Untuk tombol kembali ke login:
+            <button
+            type="button"
+            onClick={() => navigate('/auth')}
+            className="text-sm text-red-600 hover:text-red-500 font-medium transition-colors"
+            >
+            Kembali ke halaman login
+            </button>
           </form>
         );
         
@@ -302,35 +318,39 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8 bg-white">
+      <div className="max-w-md w-full space-y-6">
+        {/* Header dengan identitas website - hanya Telkomsel AI Assistant */}
         <div className="text-center">
           <img
             className="mx-auto h-20 w-auto drop-shadow-lg"
             src="/RGB_TELKOMSEL_LOCK UP_Full Colour-01.png"
             alt="Telkomsel"
           />
-          <h2 className="mt-6 text-3xl font-bold text-black-700 drop-shadow-sm">
+          <h1 className="mt-4 text-4xl font-bold text-black-600 drop-shadow-sm">
+            Telkomsel AI Assistant
+          </h1>
+          <h2 className="mt-6 text-2xl font-semibold text-gray-900">
             Reset Your Password
           </h2>
         </div>
         
-        <Card className="shadow-xl rounded-2xl border border-red-100 bg-white/90">
+        <Card className="shadow-xl rounded-2xl border border-red-100 bg-white/95 backdrop-blur-sm my-4">
           <CardHeader>
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => navigate('/auth')}
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="h-4 w-4 text-gray-600" />
               </button>
               <div>
-                <CardTitle>
+                <CardTitle className="text-xl font-bold text-gray-900">
                   {step === 'email' && 'Enter Email'}
                   {step === 'security' && 'Security Question'}
                   {step === 'newPassword' && 'New Password'}
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-gray-600">
                   {step === 'email' && 'Enter your email to find your security question'}
                   {step === 'security' && 'Answer your security question to proceed'}
                   {step === 'newPassword' && 'Enter your new password'}
@@ -342,6 +362,16 @@ const ForgotPassword = () => {
             {renderStep()}
           </CardContent>
         </Card>
+        
+        {/* Footer dengan identitas */}
+        <div className="text-center pb-4">
+          <p className="text-sm text-gray-600 mb-2">
+            Powered by Telkomsel AI Assistant
+          </p>
+          <p className="text-xs text-gray-400">
+            © 2024 Telkomsel. All rights reserved.
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -55,13 +55,21 @@ const NotebookCard = ({ notebook }: NotebookCardProps) => {
 
   return (
     <div 
-      className={`${notebook.color} rounded-lg p-6 cursor-pointer hover:shadow-md transition-shadow relative group shadow-lg`}
+      className={`${notebook.color} rounded-lg p-6 cursor-pointer relative group shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 ease-in-out`}
       onClick={handleCardClick}
+      style={{
+        // Ensure the card has proper bounding box
+        display: 'block',
+        width: '100%',
+        height: 'fit-content',
+        // Prevent shadow from extending beyond card boundaries
+        isolation: 'isolate'
+      }}
     >
       
       {/* Delete button - only show for admin */}
       {canDelete && (
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
           <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
             <AlertDialogTrigger asChild>
               <button

@@ -116,7 +116,7 @@ const NotebookGrid = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {sortedNotebooks.map(notebook => (
-          <div key={notebook.id} onClick={e => handleNotebookClick(notebook.id, e)} className="transition-shadow hover:shadow-xl hover:-translate-y-1 cursor-pointer">
+          <div key={notebook.id} onClick={e => handleNotebookClick(notebook.id, e)} className="cursor-pointer">
             <NotebookCard notebook={{
               id: notebook.id,
               title: notebook.title,

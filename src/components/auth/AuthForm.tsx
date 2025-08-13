@@ -272,23 +272,29 @@ const AuthForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8 bg-white">
+      <div className="max-w-md w-full space-y-6">
+        {/* Header dengan identitas website - hanya Telkomsel AI Assistant */}
         <div className="text-center">
           <img
             className="mx-auto h-20 w-auto drop-shadow-lg"
             src="/RGB_TELKOMSEL_LOCK UP_Full Colour-01.png"
             alt="Telkomsel"
           />
-          <h2 className="mt-6 text-3xl font-bold text-black-700 drop-shadow-sm">
+          <h1 className="mt-4 text-4xl font-bold text-black-600 drop-shadow-sm">
+            Telkomsel AI Assistant
+          </h1>
+          <h2 className="mt-6 text-2xl font-semibold text-gray-900">
             {isSignUp ? 'Create your account' : 'Sign in to your account'}
           </h2>
         </div>
         
-        <Card className="shadow-xl rounded-2xl border border-red-100 bg-white/90">
-          <CardHeader>
-            <CardTitle>{isSignUp ? 'Register' : 'Login'}</CardTitle>
-            <CardDescription>
+        <Card className="shadow-xl rounded-2xl border border-red-100 bg-white/95 backdrop-blur-sm my-4">
+          <CardHeader className="text-center">
+            <CardTitle className="text-xl font-bold text-gray-900">
+              {isSignUp ? 'Register' : 'Login'}
+            </CardTitle>
+            <CardDescription className="text-gray-600">
               {isSignUp 
                 ? 'Create a new account with security question for password recovery' 
                 : 'Enter your credentials to access your account'
@@ -393,28 +399,32 @@ const AuthForm = () => {
                 </>
               )}
               
-              <Button type="submit" className="w-full bg-red-600 text-white font-bold shadow-md rounded-lg " disabled={loading}>
+              <Button 
+                type="submit" 
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold shadow-md rounded-lg transition-all duration-200 transform hover:scale-105" 
+                disabled={loading}
+              >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSignUp ? 'Register' : 'Sign In'}
+                {isSignUp ? 'Register Now' : 'Sign In'}
               </Button>
             </form>
             
-            <div className="mt-4 text-center">
+            <div className="mt-6 text-center">
               <button
                 type="button"
                 onClick={() => setIsSignUp(!isSignUp)}
-                className="text-sm text-blue-600 hover:text-blue-500"
+                className="text-sm text-red-600 hover:text-red-500 font-medium"
               >
-                {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+                {isSignUp ? 'Already have an account? Sign in here' : "Don't have an account? Register here"}
               </button>
             </div>
             
             {!isSignUp && (
-              <div className="mt-2 text-center">
+              <div className="mt-3 text-center">
                 <button
                   type="button"
                   onClick={() => navigate('/forgot-password')}
-                  className="text-sm text-blue-600 hover:text-blue-500"
+                  className="text-sm text-red-600 hover:text-red-500 font-medium"
                 >
                   Forgot your password?
                 </button>
@@ -422,6 +432,16 @@ const AuthForm = () => {
             )}
           </CardContent>
         </Card>
+        
+        {/* Footer dengan identitas */}
+        <div className="text-center pb-4">
+          <p className="text-sm text-gray-600 mb-2">
+            Powered by Telkomsel AI Assistant
+          </p>
+          <p className="text-xs text-gray-400">
+            © 2024 Telkomsel. All rights reserved.
+          </p>
+        </div>
       </div>
     </div>
   );
