@@ -198,7 +198,7 @@ const SourceContentViewer = ({
             <div
               key={`highlight-${blockStartLine}-${lineNumber}`}
               ref={isFirstHighlightedLine ? highlightedContentRef : null}
-              className="py-3 px-4 rounded-lg border-l-4 leading-relaxed mb-1"
+              className="py-3 px-4 rounded-lg border-l-4 leading-relaxed mb-0"
               style={{ 
                 backgroundColor: '#eadef9', 
                 borderLeftColor: '#9333ea' 
@@ -247,7 +247,7 @@ const SourceContentViewer = ({
         result.push(
           <div
             key={index}
-            className="py-3 px-3 rounded leading-relaxed hover:bg-gray-50"
+            className="py-1 px-3 rounded leading-relaxed hover:bg-gray-50"
           >
             <span>{line}</span>
           </div>
@@ -318,7 +318,7 @@ const SourceContentViewer = ({
       {/* Content */}
       <ScrollArea className="flex-1 h-full" ref={scrollAreaViewportRef}>
         <div className="p-4">
-          <div className="prose prose-gray max-w-none space-y-1">
+          <div className="max-w-none space-y-0">
             {renderHighlightedContent()}
           </div>
         </div>
