@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { FileText } from 'lucide-react';
 
 interface CitationButtonProps {
   chunkIndex: number;
@@ -14,9 +15,10 @@ const CitationButton = ({ chunkIndex, onClick, className = '' }: CitationButtonP
       variant="outline"
       size="sm"
       onClick={onClick}
-      className={`inline-flex items-center justify-center w-6 h-6 p-0 ml-1 text-xs font-medium text-blue-600 border-blue-300 hover:bg-blue-50 hover:border-blue-400 rounded-full ${className}`}
+      className={`inline-flex items-center justify-center w-6 h-6 p-0 ml-1 text-blue-600 border-blue-300 hover:bg-blue-50 hover:border-blue-400 rounded-full ${className}`}
+      title={`Reference ${chunkIndex + 1}`}
     >
-      {chunkIndex + 1}
+      <FileText className="h-3 w-3" />
     </Button>
   );
 };
