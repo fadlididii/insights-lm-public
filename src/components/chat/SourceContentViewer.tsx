@@ -172,18 +172,19 @@ const SourceContentViewer = ({
     const result = [];
     let currentBlock = [];
     let isInHighlightedBlock = false;
+    let blockStartLine = -1;
     
     for (let index = 0; index < lines.length; index++) {
       const line = lines[index];
       const lineNumber = index + 1;
       const isHighlighted = startLine > 0 && lineNumber >= startLine && lineNumber <= endLine;
-      const isFirstHighlightedLine = isHighlighted && lineNumber === startLine;
       
       if (isHighlighted) {
         if (!isInHighlightedBlock) {
           // Start a new highlighted block
           isInHighlightedBlock = true;
           currentBlock = [line];
+          blockStartLine = lineNumber;
         } else {
           // Continue the highlighted block
           currentBlock.push(line);
@@ -192,11 +193,12 @@ const SourceContentViewer = ({
         // If this is the last highlighted line or the last line overall
         if (lineNumber === endLine || index === lines.length - 1) {
           // Close the highlighted block
+          const isFirstHighlightedLine = blockStartLine === startLine;
           result.push(
             <div
-              key={`highlight-${startLine}-${endLine}`}
+              key={`highlight-${blockStartLine}-${lineNumber}`}
               ref={isFirstHighlightedLine ? highlightedContentRef : null}
-              className="py-3 px-4 rounded-lg border-l-4 leading-relaxed"
+              className="py-3 px-4 rounded-lg border-l-4 leading-relaxed mb-1"
               style={{ 
                 backgroundColor: '#eadef9', 
                 borderLeftColor: '#9333ea' 
@@ -212,13 +214,34 @@ const SourceContentViewer = ({
           );
           isInHighlightedBlock = false;
           currentBlock = [];
+          blockStartLine = -1;
         }
       } else {
         // Non-highlighted line
         if (isInHighlightedBlock) {
-          // This shouldn't happen with our current logic, but handle it just in case
+          // Close any open highlighted block before adding non-highlighted line
+          const isFirstHighlightedLine = blockStartLine === startLine;
+          result.push(
+            <div
+              key={`highlight-${blockStartLine}-${index}`}
+              ref={isFirstHighlightedLine ? highlightedContentRef : null}
+              className="py-3 px-4 rounded-lg border-l-4 leading-relaxed mb-1"
+              style={{ 
+                backgroundColor: '#eadef9', 
+                borderLeftColor: '#9333ea' 
+              }}
+            >
+              {currentBlock.map((blockLine, blockIndex) => (
+                <div key={blockIndex} className="font-medium">
+                  {blockLine}
+                  {blockIndex < currentBlock.length - 1 && <br />}
+                </div>
+              ))}
+            </div>
+          );
           isInHighlightedBlock = false;
           currentBlock = [];
+          blockStartLine = -1;
         }
         
         result.push(
