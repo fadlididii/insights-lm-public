@@ -289,25 +289,22 @@ const ForgotPassword = () => {
                 </button>
               </div>
             </div>
-            // Dalam fungsi renderStep(), update styling tombol menjadi:
-            
-            // Untuk tombol submit di setiap step:
+
             <Button 
             type="submit" 
             className="w-full bg-red-600 hover:bg-red-700 text-white font-bold shadow-md rounded-lg transition-all duration-200 transform hover:scale-105" 
             disabled={loading}
             >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {/* Text sesuai dengan step */}
+            Reset Password
             </Button>
             
-            // Untuk tombol kembali ke login:
             <button
             type="button"
             onClick={() => navigate('/auth')}
-            className="text-sm text-red-600 hover:text-red-500 font-medium transition-colors"
+            className="text-sm text-red-600 hover:text-red-500 font-medium transition-colors text-center w-full"
             >
-            Kembali ke halaman login
+            Back to login page
             </button>
           </form>
         );
