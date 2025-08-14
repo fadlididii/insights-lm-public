@@ -247,7 +247,7 @@ const SourceContentViewer = ({
         result.push(
           <div
             key={index}
-            className="py-2 px-3 rounded leading-relaxed hover:bg-gray-50"
+            className="py-3 px-3 rounded leading-relaxed hover:bg-gray-50"
           >
             <span>{line}</span>
           </div>
