@@ -169,29 +169,70 @@ const SourceContentViewer = ({
   }
 
   const renderHighlightedContent = () => {
-    return lines.map((line, index) => {
+    const result = [];
+    let currentBlock = [];
+    let isInHighlightedBlock = false;
+    
+    for (let index = 0; index < lines.length; index++) {
+      const line = lines[index];
       const lineNumber = index + 1;
       const isHighlighted = startLine > 0 && lineNumber >= startLine && lineNumber <= endLine;
       const isFirstHighlightedLine = isHighlighted && lineNumber === startLine;
       
-      return (
-        <div
-          key={index}
-          ref={isFirstHighlightedLine ? highlightedContentRef : null}
-          className={`py-2 px-3 rounded leading-relaxed ${
-            isHighlighted 
-              ? 'border-l-4' 
-              : 'hover:bg-gray-50'
-          }`}
-          style={isHighlighted ? { 
-            backgroundColor: '#eadef9', 
-            borderLeftColor: '#9333ea' 
-          } : {}}
-        >
-          <span className={isHighlighted ? 'font-medium' : ''}>{line}</span>
-        </div>
-      );
-    });
+      if (isHighlighted) {
+        if (!isInHighlightedBlock) {
+          // Start a new highlighted block
+          isInHighlightedBlock = true;
+          currentBlock = [line];
+        } else {
+          // Continue the highlighted block
+          currentBlock.push(line);
+        }
+        
+        // If this is the last highlighted line or the last line overall
+        if (lineNumber === endLine || index === lines.length - 1) {
+          // Close the highlighted block
+          result.push(
+            <div
+              key={`highlight-${startLine}-${endLine}`}
+              ref={isFirstHighlightedLine ? highlightedContentRef : null}
+              className="py-3 px-4 rounded-lg border-l-4 leading-relaxed"
+              style={{ 
+                backgroundColor: '#eadef9', 
+                borderLeftColor: '#9333ea' 
+              }}
+            >
+              {currentBlock.map((blockLine, blockIndex) => (
+                <div key={blockIndex} className="font-medium">
+                  {blockLine}
+                  {blockIndex < currentBlock.length - 1 && <br />}
+                </div>
+              ))}
+            </div>
+          );
+          isInHighlightedBlock = false;
+          currentBlock = [];
+        }
+      } else {
+        // Non-highlighted line
+        if (isInHighlightedBlock) {
+          // This shouldn't happen with our current logic, but handle it just in case
+          isInHighlightedBlock = false;
+          currentBlock = [];
+        }
+        
+        result.push(
+          <div
+            key={index}
+            className="py-2 px-3 rounded leading-relaxed hover:bg-gray-50"
+          >
+            <span>{line}</span>
+          </div>
+        );
+      }
+    }
+    
+    return result;
   };
 
   return (
